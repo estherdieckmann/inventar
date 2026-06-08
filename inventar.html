@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a1a1a">
+<title>Dieckmann Inventar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+:root {
+  --bg: #f9f7f4;
+  --surface: #ffffff;
+  --surface2: #f2ede6;
+  --border: #e0d9d0;
+  --text: #1a1a1a;
+  --text2: #5a5550;
+  --text3: #9a9088;
+  --gold: #c9a96e;
+  --gold-light: #f5ede0;
+  --gold-dark: #7a5c2e;
+  --danger: #c0392b;
+  --danger-light: #fdf0ee;
+  --warning: #b7791f;
+  --warning-light: #fef9e7;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.14);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(--bg); -webkit-font-smoothing: antialiased; color: var(--text); font-size: 15px; line-height: 1.5; }
+body { display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; position: relative; min-height: 100vh; }
+
+/* Header */
+.app-header { background: #1a1a1a; color: white; padding: 12px 16px 11px; position: sticky; top: 0; z-index: 100; border-bottom: 2px solid var(--gold); }
+.header-row { display: flex; align-items: center; justify-content: space-between; }
+.header-logo { display: flex; flex-direction: column; }
+.header-logo h1 { font-size: 16px; font-weight: 600; letter-spacing: 0.5px; }
+.header-logo h1 span { color: var(--gold); }
+.header-logo p { font-size: 11px; opacity: 0.6; margin-top: 1px; }
+.header-actions { display: flex; gap: 6px; }
+.icon-btn { background: rgba(255,255,255,0.12); border: none; color: white; width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 17px; transition: background .2s; }
+.icon-btn:hover { background: rgba(255,255,255,0.22); }
+.icon-btn.has-filter { background: var(--gold); color: #1a1a1a; }
+
+/* Search row */
+.search-row { display: flex; gap: 8px; padding: 10px 12px 6px; align-items: center; }
+.search-input-wrap { position: relative; flex: 1; }
+.search-input { width: 100%; padding: 9px 14px 9px 36px; border: 1.5px solid var(--border); border-radius: 100px; font-size: 13px; font-family: inherit; background: var(--surface); color: var(--text); outline: none; transition: border-color .2s; }
+.search-input:focus { border-color: var(--gold); }
+.search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 16px; pointer-events: none; }
+.search-clear { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text3); cursor: pointer; font-size: 15px; display: none; line-height: 1; }
+.filter-toggle { flex-shrink: 0; width: 38px; height: 38px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; color: var(--text2); transition: all .2s; position: relative; }
+.filter-toggle.active { background: #1a1a1a; border-color: #1a1a1a; color: var(--gold); }
+.filter-badge { position: absolute; top: -5px; right: -5px; background: var(--gold); color: #1a1a1a; font-size: 9px; font-weight: 700; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; display: none; }
+
+/* Filter panel */
+.filter-panel { background: var(--surface); border-bottom: 1px solid var(--border); overflow: hidden; max-height: 0; transition: max-height .3s ease; }
+.filter-panel.open { max-height: 500px; }
+.filter-panel-inner { padding: 12px 12px 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.filter-field { display: flex; flex-direction: column; gap: 3px; }
+.filter-field label { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; }
+.filter-select { width: 100%; padding: 7px 10px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 12px; font-family: inherit; background: var(--surface); color: var(--text); outline: none; }
+.filter-select:focus { border-color: var(--gold); }
+.filter-reset { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
+.filter-reset button { background: none; border: none; font-size: 12px; color: var(--gold-dark); font-family: inherit; cursor: pointer; font-weight: 500; padding: 4px 0; }
+
+/* Stats bar */
+.stats-bar { display: flex; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--surface); }
+.stat-item { flex: 1; padding: 7px 4px; text-align: center; border-right: 1px solid var(--border); }
+.stat-item:last-child { border-right: none; }
+.stat-val { font-size: 15px; font-weight: 600; color: var(--gold); display: block; font-family: 'DM Mono', monospace; }
+.stat-lbl { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* List */
+.list-container { flex: 1; overflow-y: auto; padding: 4px 0 90px; }
+.count-label { font-size: 11px; color: var(--text3); padding: 8px 14px 4px; }
+
+.inv-item { display: flex; align-items: center; gap: 11px; padding: 10px 14px; background: var(--surface); border-bottom: 1px solid var(--border); cursor: pointer; transition: background .12s; }
+.inv-item:active { background: var(--surface2); }
+.inv-thumb { width: 48px; height: 48px; border-radius: var(--radius-sm); background: var(--surface2); flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); }
+.inv-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.inv-thumb i { font-size: 22px; color: var(--text3); }
+.inv-info { flex: 1; min-width: 0; }
+.inv-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.inv-nr { font-size: 10px; color: var(--text3); font-family: 'DM Mono', monospace; margin-bottom: 2px; }
+.inv-meta { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 3px; }
+.tag { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 500; }
+.tag-anlage { background: var(--gold-light); color: var(--gold-dark); }
+.tag-gwg { background: #fdf3e3; color: var(--gold-dark); }
+.tag-defekt { background: var(--danger-light); color: var(--danger); }
+.tag-nok { background: var(--warning-light); color: var(--warning); }
+.tag-loc { background: var(--surface2); color: var(--text2); }
+.inv-chevron { color: var(--text3); flex-shrink: 0; font-size: 18px; }
+
+.empty-state { text-align: center; padding: 56px 32px; color: var(--text3); }
+.empty-state i { font-size: 48px; display: block; margin-bottom: 12px; color: var(--border); }
+.empty-state h3 { font-size: 15px; color: var(--text2); margin-bottom: 6px; }
+.empty-state p { font-size: 13px; }
+
+/* FABs */
+.fab { position: fixed; bottom: 24px; right: 50%; transform: translateX(calc(50% + 220px)); width: 54px; height: 54px; border-radius: 50%; background: #1a1a1a; color: var(--gold); border: none; font-size: 24px; cursor: pointer; box-shadow: var(--shadow-lg); display: flex; align-items: center; justify-content: center; z-index: 200; transition: transform .2s; }
+.fab:active { transform: translateX(calc(50% + 220px)) scale(0.93); }
+.scan-fab { position: fixed; bottom: 24px; left: 50%; transform: translateX(calc(-50% - 220px)); width: 54px; height: 54px; border-radius: 50%; background: var(--surface); color: #1a1a1a; border: 2px solid var(--gold); font-size: 22px; cursor: pointer; box-shadow: var(--shadow-lg); display: flex; align-items: center; justify-content: center; z-index: 200; }
+@media (max-width: 520px) {
+  .fab { right: 18px; transform: none; }
+  .fab:active { transform: scale(0.93); }
+  .scan-fab { left: 18px; transform: none; }
+}
+
+/* Sheet */
+.sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.42); z-index: 300; display: none; opacity: 0; transition: opacity .25s; flex-direction: column; justify-content: flex-end; }
+.sheet-overlay.open { display: flex; }
+.sheet-overlay.visible { opacity: 1; }
+.sheet { background: var(--surface); border-radius: 20px 20px 0 0; max-height: 92vh; overflow-y: auto; transform: translateY(100%); transition: transform .3s cubic-bezier(.32,0,.67,0); padding-bottom: env(safe-area-inset-bottom, 16px); }
+.sheet.open { transform: translateY(0); }
+.sheet-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 12px auto 0; }
+.sheet-header { padding: 14px 18px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+.sheet-title { font-size: 16px; font-weight: 600; flex: 1; }
+.sheet-close { background: var(--surface2); border: none; width: 28px; height: 28px; border-radius: 50%; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text2); }
+
+/* Detail */
+.detail-img { width: 100%; height: 210px; object-fit: contain; background: var(--surface2); }
+.detail-img-placeholder { width: 100%; height: 160px; background: var(--surface2); display: flex; align-items: center; justify-content: center; }
+.detail-img-placeholder i { font-size: 56px; color: var(--border); }
+.detail-body { padding: 16px 18px; }
+.detail-name { font-size: 19px; font-weight: 600; line-height: 1.25; margin-bottom: 3px; }
+.detail-nr { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text3); margin-bottom: 10px; }
+.detail-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 14px; }
+.detail-tag { font-size: 12px; padding: 3px 9px; border-radius: 5px; font-weight: 500; }
+.detail-fields { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 14px; }
+.detail-row { display: flex; padding: 9px 13px; border-bottom: 1px solid var(--border); }
+.detail-row:last-child { border-bottom: none; }
+.detail-label { font-size: 11px; color: var(--text3); min-width: 130px; flex-shrink: 0; padding-top: 1px; text-transform: uppercase; letter-spacing: 0.3px; }
+.detail-val { font-size: 13px; font-weight: 500; flex: 1; }
+.detail-desc { background: var(--surface2); border-radius: var(--radius-sm); padding: 11px; font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 14px; }
+.btn-edit { width: 100%; padding: 12px; border: 1.5px solid var(--gold); border-radius: var(--radius-sm); background: var(--gold-light); color: var(--gold-dark); font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.btn-delete { width: 100%; padding: 12px; border: none; border-radius: var(--radius-sm); background: var(--danger-light); color: var(--danger); font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; display: none; align-items: center; justify-content: center; gap: 6px; }
+
+/* Form */
+.form-body { padding: 14px 18px 24px; }
+.form-group { margin-bottom: 13px; }
+.form-label { font-size: 11px; font-weight: 600; color: var(--text2); margin-bottom: 4px; display: block; text-transform: uppercase; letter-spacing: 0.4px; }
+.form-input, .form-select, .form-textarea { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; font-family: inherit; background: var(--surface); color: var(--text); outline: none; transition: border-color .2s; }
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--gold); }
+.form-textarea { min-height: 76px; resize: vertical; }
+.form-row { display: flex; gap: 9px; }
+.form-row .form-group { flex: 1; }
+.btn-primary { width: 100%; padding: 13px; background: #1a1a1a; color: white; border: none; border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; font-family: inherit; cursor: pointer; margin-top: 6px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.btn-primary:active { background: #333; }
+.btn-scan-nr { display: flex; align-items: center; gap: 8px; padding: 9px 13px; border: 1.5px dashed var(--gold); border-radius: var(--radius-sm); background: var(--gold-light); color: var(--gold-dark); font-size: 13px; font-weight: 500; cursor: pointer; width: 100%; font-family: inherit; }
+
+/* PIN */
+.pin-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 500; display: none; align-items: center; justify-content: center; padding: 20px; }
+.pin-overlay.open { display: flex; }
+.pin-box { background: var(--surface); border-radius: var(--radius); padding: 28px 24px; width: 100%; max-width: 300px; text-align: center; }
+.pin-box h3 { font-size: 17px; font-weight: 600; margin-bottom: 5px; }
+.pin-box p { font-size: 13px; color: var(--text3); margin-bottom: 18px; }
+.pin-input { width: 100%; padding: 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 22px; text-align: center; letter-spacing: 8px; font-family: 'DM Mono', monospace; outline: none; }
+.pin-input:focus { border-color: var(--gold); }
+.pin-error { color: var(--danger); font-size: 12px; margin-top: 7px; display: none; }
+.pin-btn { margin-top: 13px; width: 100%; padding: 12px; background: #1a1a1a; color: white; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; }
+.pin-cancel { margin-top: 8px; width: 100%; padding: 9px; background: none; color: var(--text3); border: none; font-size: 13px; font-family: inherit; cursor: pointer; }
+
+/* Scanner */
+.scanner-overlay { position: fixed; inset: 0; background: #000; z-index: 400; display: none; flex-direction: column; align-items: center; justify-content: center; }
+.scanner-overlay.open { display: flex; }
+#scanner-video { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
+.scanner-frame { position: relative; z-index: 1; width: 260px; height: 180px; border: 2px solid rgba(255,255,255,0.8); border-radius: 12px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.6); }
+.scanner-line { position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--gold); animation: scan 2s linear infinite; }
+@keyframes scan { 0%,100% { top: 0; } 50% { top: calc(100% - 2px); } }
+.scanner-label { position: relative; z-index: 1; color: white; font-size: 13px; margin-top: 20px; opacity: 0.75; }
+.scanner-close { position: absolute; top: 18px; right: 18px; z-index: 2; background: rgba(255,255,255,0.18); border: none; color: white; width: 38px; height: 38px; border-radius: 50%; font-size: 19px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.scanner-manual { position: absolute; bottom: 36px; z-index: 2; background: rgba(255,255,255,0.13); border: 1px solid rgba(255,255,255,0.28); color: white; padding: 9px 18px; border-radius: 100px; font-size: 13px; font-family: inherit; cursor: pointer; }
+
+/* Toast */
+.toast { position: fixed; bottom: 96px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: white; padding: 9px 18px; border-radius: 100px; font-size: 13px; z-index: 600; opacity: 0; transition: opacity .28s; pointer-events: none; white-space: nowrap; border-left: 3px solid var(--gold); }
+.toast.show { opacity: 1; }
+
+/* Loading */
+.loading { display: flex; align-items: center; justify-content: center; padding: 56px; }
+.spinner { width: 30px; height: 30px; border: 2.5px solid var(--border); border-top-color: var(--gold); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Admin list items */
+.admin-item { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--border); }
+.admin-item span { font-size: 13px; }
+.admin-item button { background: var(--danger-light); color: var(--danger); border: none; padding: 3px 9px; border-radius: 5px; font-size: 11px; cursor: pointer; font-family: inherit; }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="header-row">
+    <div class="header-logo">
+      <h1>DIECKMANN <span>INVENTAR</span></h1>
+      <p id="sync-status">Verbinde mit Datenbank…</p>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" onclick="openAdmin()" title="Admin"><i class="ti ti-settings"></i></button>
+    </div>
+  </div>
+</div>
+
+<div class="search-row">
+  <div class="search-input-wrap">
+    <i class="ti ti-search search-icon"></i>
+    <input class="search-input" type="text" id="searchInput" placeholder="Suche nach Bezeichnung, Nummer…" oninput="onSearch(this)">
+    <button class="search-clear" id="searchClear" onclick="clearSearch()">✕</button>
+  </div>
+  <button class="filter-toggle" id="filterToggle" onclick="toggleFilters()" title="Filter">
+    <i class="ti ti-adjustments-horizontal"></i>
+    <span class="filter-badge" id="filterBadge"></span>
+  </button>
+</div>
+
+<!-- Filter Panel -->
+<div class="filter-panel" id="filterPanel">
+  <div class="filter-panel-inner">
+    <div class="filter-field">
+      <label>Gruppe</label>
+      <select class="filter-select" id="fltGruppe" onchange="applyPanelFilters()">
+        <option value="">Alle</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Standort</label>
+      <select class="filter-select" id="fltStandort" onchange="applyPanelFilters()">
+        <option value="">Alle</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Ausgegeben an</label>
+      <select class="filter-select" id="fltPerson" onchange="applyPanelFilters()">
+        <option value="">Alle</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Status</label>
+      <select class="filter-select" id="fltStatus" onchange="applyPanelFilters()">
+        <option value="">Alle</option>
+        <option>In Ordnung</option>
+        <option>Defekt</option>
+        <option>Nicht aktuell</option>
+        <option>Nicht komplett</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Anlagevermögen</label>
+      <select class="filter-select" id="fltAnlage" onchange="applyPanelFilters()">
+        <option value="">Alle</option>
+        <option value="Anlagev.">Anlagevermögen</option>
+        <option value="GWG">GWG</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Firmierung</label>
+      <select class="filter-select" id="fltFirm" onchange="applyPanelFilters()">
+        <option value="">Alle</option>
+        <option>Dieckmann Immobilien</option>
+        <option>HvH</option>
+        <option>Coole Bude</option>
+        <option>ohne</option>
+      </select>
+    </div>
+    <div class="filter-reset">
+      <button onclick="resetFilters()"><i class="ti ti-x" style="font-size:11px;vertical-align:-1px"></i> Filter zurücksetzen</button>
+    </div>
+  </div>
+</div>
+
+<div class="stats-bar" id="statsBar" style="display:none">
+  <div class="stat-item"><span class="stat-val" id="statTotal">0</span><span class="stat-lbl">Gesamt</span></div>
+  <div class="stat-item"><span class="stat-val" id="statAnlage">0</span><span class="stat-lbl">Anlagev.</span></div>
+  <div class="stat-item"><span class="stat-val" id="statGWG">0</span><span class="stat-lbl">GWG</span></div>
+</div>
+
+<div class="list-container" id="listContainer">
+  <div class="loading"><div class="spinner"></div></div>
+</div>
+
+<button class="scan-fab" onclick="openScanner()" title="Barcode scannen"><i class="ti ti-barcode-off" style="font-size:22px"></i><i class="ti ti-camera" style="font-size:22px"></i></button>
+<button class="fab" onclick="openForm()" title="Neues Inventar"><i class="ti ti-plus" style="font-size:24px"></i></button>
+
+<!-- Detail Sheet -->
+<div class="sheet-overlay" id="detailOverlay" onclick="if(event.target===this)closeDetail()">
+  <div class="sheet" id="detailSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <span class="sheet-title" id="detailTitle">Details</span>
+      <button class="sheet-close" onclick="closeDetail()"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<!-- Form Sheet -->
+<div class="sheet-overlay" id="formOverlay" onclick="if(event.target===this)closeForm()">
+  <div class="sheet" id="formSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <span class="sheet-title" id="formTitle">Neuer Artikel</span>
+      <button class="sheet-close" onclick="closeForm()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="form-body">
+      <input type="hidden" id="editId">
+      <div class="form-group">
+        <label class="form-label">Inventarnummer</label>
+        <button class="btn-scan-nr" onclick="openScannerForForm()" type="button">
+          <i class="ti ti-scan" style="font-size:16px"></i> Barcode scannen
+        </button>
+        <input class="form-input" id="fNr" placeholder="z.B. 000123 oder leer lassen" style="margin-top:8px">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Bezeichnung *</label>
+        <input class="form-input" id="fBez" placeholder="z.B. Rollup, Laptop, Banner…">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Beschreibung</label>
+        <textarea class="form-textarea" id="fDesc" placeholder="Details, Seriennummer, Besonderheiten…"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Gruppe</label>
+          <select class="form-select" id="fGruppe"><option value="">Wählen…</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Firmierung</label>
+          <select class="form-select" id="fFirm">
+            <option value="">–</option>
+            <option>Dieckmann Immobilien</option>
+            <option>HvH</option>
+            <option>Coole Bude</option>
+            <option>ohne</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Standort</label>
+          <select class="form-select" id="fStandort"><option value="">Wählen…</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-select" id="fStatus">
+            <option>In Ordnung</option>
+            <option>Defekt</option>
+            <option>Nicht aktuell</option>
+            <option>Nicht komplett</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Dauerhaft ausgegeben an</label>
+        <select class="form-select" id="fPerson"><option value="">– niemand –</option></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Gekauft am</label>
+          <input class="form-input" type="date" id="fDatum">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Preis €</label>
+          <input class="form-input" type="number" id="fPreis" placeholder="0.00" step="0.01">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Anlagevermögen / GWG</label>
+        <select class="form-select" id="fAnlage">
+          <option value="">–</option>
+          <option value="Anlagev.">Anlagevermögen</option>
+          <option value="GWG">GWG</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="saveItem()">
+        <i class="ti ti-device-floppy"></i> Speichern
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Admin Sheet -->
+<div class="sheet-overlay" id="adminOverlay" onclick="if(event.target===this)closeAdmin()">
+  <div class="sheet" id="adminSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <span class="sheet-title"><i class="ti ti-settings" style="font-size:16px;vertical-align:-2px;margin-right:6px"></i>Admin-Bereich</span>
+      <button class="sheet-close" onclick="closeAdmin()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="form-body">
+      <div class="form-group">
+        <label class="form-label">Personen verwalten</label>
+        <div id="personList" style="margin-bottom:8px"></div>
+        <div style="display:flex;gap:8px">
+          <input class="form-input" id="newPerson" placeholder="Name eingeben…" style="flex:1">
+          <button onclick="addPerson()" style="padding:9px 14px;background:#1a1a1a;color:white;border:none;border-radius:var(--radius-sm);font-family:inherit;cursor:pointer;font-size:18px;line-height:1">+</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Gruppen verwalten</label>
+        <div id="gruppeList" style="margin-bottom:8px"></div>
+        <div style="display:flex;gap:8px">
+          <input class="form-input" id="newGruppe" placeholder="Gruppe eingeben…" style="flex:1">
+          <button onclick="addGruppe()" style="padding:9px 14px;background:#1a1a1a;color:white;border:none;border-radius:var(--radius-sm);font-family:inherit;cursor:pointer;font-size:18px;line-height:1">+</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Standorte verwalten</label>
+        <div id="standortList" style="margin-bottom:8px"></div>
+        <div style="display:flex;gap:8px">
+          <input class="form-input" id="newStandort" placeholder="Standort eingeben…" style="flex:1">
+          <button onclick="addStandort()" style="padding:9px 14px;background:#1a1a1a;color:white;border:none;border-radius:var(--radius-sm);font-family:inherit;cursor:pointer;font-size:18px;line-height:1">+</button>
+        </div>
+      </div>
+      <button onclick="closeAdmin()" class="btn-primary" style="margin-top:8px">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<!-- PIN -->
+<div class="pin-overlay" id="pinOverlay">
+  <div class="pin-box">
+    <h3><i class="ti ti-lock" style="font-size:20px;vertical-align:-3px;margin-right:5px;color:var(--gold)"></i>Admin-Zugang</h3>
+    <p id="pinDesc">PIN eingeben</p>
+    <input class="pin-input" type="password" id="pinInput" maxlength="6" placeholder="••••" onkeydown="if(event.key==='Enter')checkPin()">
+    <div class="pin-error" id="pinError">Falsche PIN</div>
+    <button class="pin-btn" onclick="checkPin()">Bestätigen</button>
+    <button class="pin-cancel" onclick="closePinOverlay()">Abbrechen</button>
+  </div>
+</div>
+
+<!-- Scanner -->
+<div class="scanner-overlay" id="scannerOverlay">
+  <video id="scanner-video" autoplay playsinline muted></video>
+  <div class="scanner-frame"><div class="scanner-line"></div></div>
+  <p class="scanner-label">Barcode in den Rahmen halten</p>
+  <button class="scanner-close" onclick="closeScanner()"><i class="ti ti-x"></i></button>
+  <button class="scanner-manual" onclick="manualBarcodeEntry()">Nummer manuell eingeben</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const ADMIN_PIN = "1234";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBsNb7Ca80tlk075mBoHffH3jlc_M1o6kQ",
+  authDomain: "dieckmann-inventar.firebaseapp.com",
+  projectId: "dieckmann-inventar",
+  storageBucket: "dieckmann-inventar.firebasestorage.app",
+  messagingSenderId: "743786740762",
+  appId: "1:743786740762:web:1064e8ca4738ae8256e5a3"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let allItems = [];
+let filteredItems = [];
+let filters = { gruppe:'', standort:'', person:'', status:'', anlage:'', firmierung:'' };
+let searchQ = '';
+let isAdmin = false;
+let pendingScanForForm = false;
+let currentEditId = null;
+let scanStream = null;
+let scanInterval = null;
+let adminAction = null;
+let config = { gruppen:[], standorte:[], personen:[] };
+let filterPanelOpen = false;
+
+const DEFAULT_GRUPPEN = ['IT','Marketing Produkte','Technik','Ausstattung','Maklerbedarf','Möbel'];
+const DEFAULT_STANDORTE = ['Rathausstraße Schwerte','Menden','Duisburg','Unbekannt'];
+const DEFAULT_PERSONEN = ['Arzu','Berna','Esther','Henna','Inge','Laura','Lea','Malte','Niko','Niels','Rita','Sam','Sami','Shejla'];
+
+function getIcon(bez) {
+  const b = (bez||'').toLowerCase();
+  if(b.includes('laptop')||b.includes('surface')||b.includes('rechner')) return 'ti-device-laptop';
+  if(b.includes('rollup')||b.includes('roll up')||b.includes('banner')||b.includes('plane')) return 'ti-layout-board';
+  if(b.includes('iphone')||b.includes('ipad')||b.includes('smartphone')) return 'ti-device-mobile';
+  if(b.includes('monitor')) return 'ti-device-desktop';
+  if(b.includes('drucker')) return 'ti-printer';
+  if(b.includes('mikrofon')) return 'ti-microphone';
+  if(b.includes('drohne')||b.includes('dji')) return 'ti-drone';
+  if(b.includes('vr')) return 'ti-cardboards';
+  if(b.includes('kamera')||b.includes('foto')) return 'ti-camera';
+  if(b.includes('beamer')) return 'ti-projector';
+  if(b.includes('fahne')||b.includes('flag')) return 'ti-flag';
+  if(b.includes('tablet')) return 'ti-device-tablet';
+  return 'ti-package';
+}
+
+async function loadConfig() {
+  try {
+    const d = await getDoc(doc(db,'config','main'));
+    if(d.exists()) config = d.data();
+    else {
+      config = { gruppen:DEFAULT_GRUPPEN, standorte:DEFAULT_STANDORTE, personen:DEFAULT_PERSONEN };
+      await setDoc(doc(db,'config','main'), config);
+    }
+  } catch(e) {
+    config = { gruppen:DEFAULT_GRUPPEN, standorte:DEFAULT_STANDORTE, personen:DEFAULT_PERSONEN };
+  }
+  populateSelects();
+}
+
+function populateSelects() {
+  const opts = (arr, sel) => arr.map(x=>`<option value="${x}"${sel===x?' selected':''}>${x}</option>`).join('');
+
+  document.getElementById('fGruppe').innerHTML = '<option value="">Wählen…</option>' + opts(config.gruppen,'');
+  document.getElementById('fStandort').innerHTML = '<option value="">Wählen…</option>' + opts(config.standorte,'');
+  document.getElementById('fPerson').innerHTML = '<option value="">– niemand –</option>' + opts(config.personen,'');
+
+  document.getElementById('fltGruppe').innerHTML = '<option value="">Alle</option>' + opts(config.gruppen, filters.gruppe);
+  document.getElementById('fltStandort').innerHTML = '<option value="">Alle</option>' + opts(config.standorte, filters.standort);
+  document.getElementById('fltPerson').innerHTML = '<option value="">Alle</option>' + opts(config.personen, filters.person);
+}
+
+function loadItems() {
+  const q = query(collection(db,'inventar'), orderBy('bezeichnung'));
+  onSnapshot(q, snap => {
+    allItems = snap.docs.map(d=>({id:d.id,...d.data()}));
+    document.getElementById('sync-status').textContent = `${allItems.length} Artikel`;
+    document.getElementById('statsBar').style.display = 'flex';
+    updateStats(allItems);
+    applyFilters();
+  }, () => {
+    document.getElementById('sync-status').textContent = 'Verbindungsfehler';
+    document.getElementById('listContainer').innerHTML = '<div class="empty-state"><i class="ti ti-wifi-off"></i><h3>Keine Verbindung</h3><p>Firestore-Regeln prüfen</p></div>';
+  });
+}
+
+function updateStats(items) {
+  document.getElementById('statTotal').textContent = items.length;
+  document.getElementById('statAnlage').textContent = items.filter(i=>i.anlage==='Anlagev.').length;
+  document.getElementById('statGWG').textContent = items.filter(i=>i.anlage==='GWG').length;
+}
+
+function countActiveFilters() {
+  return Object.values(filters).filter(v=>v!=='').length;
+}
+
+function updateFilterBadge() {
+  const n = countActiveFilters();
+  const badge = document.getElementById('filterBadge');
+  const btn = document.getElementById('filterToggle');
+  badge.textContent = n;
+  badge.style.display = n>0 ? 'flex' : 'none';
+  btn.classList.toggle('active', filterPanelOpen || n>0);
+}
+
+function applyFilters() {
+  let items = [...allItems];
+  if(searchQ) {
+    const q = searchQ.toLowerCase();
+    items = items.filter(i=>(i.bezeichnung+i.nr+i.beschreibung+i.person+i.standort+i.gruppe).toLowerCase().includes(q));
+  }
+  if(filters.gruppe) items = items.filter(i=>i.gruppe===filters.gruppe);
+  if(filters.standort) items = items.filter(i=>i.standort===filters.standort);
+  if(filters.person) items = items.filter(i=>i.person===filters.person);
+  if(filters.status) items = items.filter(i=>i.status===filters.status);
+  if(filters.anlage) items = items.filter(i=>i.anlage===filters.anlage);
+  if(filters.firmierung) items = items.filter(i=>i.firmierung===filters.firmierung);
+  filteredItems = items;
+  renderList(items);
+  updateFilterBadge();
+}
+
+window.applyPanelFilters = function() {
+  filters.gruppe = document.getElementById('fltGruppe').value;
+  filters.standort = document.getElementById('fltStandort').value;
+  filters.person = document.getElementById('fltPerson').value;
+  filters.status = document.getElementById('fltStatus').value;
+  filters.anlage = document.getElementById('fltAnlage').value;
+  filters.firmierung = document.getElementById('fltFirm').value;
+  applyFilters();
+};
+
+window.resetFilters = function() {
+  filters = { gruppe:'', standort:'', person:'', status:'', anlage:'', firmierung:'' };
+  ['fltGruppe','fltStandort','fltPerson','fltStatus','fltAnlage','fltFirm'].forEach(id=>document.getElementById(id).value='');
+  applyFilters();
+};
+
+window.toggleFilters = function() {
+  filterPanelOpen = !filterPanelOpen;
+  document.getElementById('filterPanel').classList.toggle('open', filterPanelOpen);
+  updateFilterBadge();
+};
+
+function renderList(items) {
+  const c = document.getElementById('listContainer');
+  if(!items.length) {
+    c.innerHTML = '<div class="empty-state"><i class="ti ti-search-off"></i><h3>Keine Einträge gefunden</h3><p>Filter anpassen oder neuen Artikel anlegen</p></div>';
+    return;
+  }
+  c.innerHTML = `<div class="count-label">${items.length} Einträge</div>` + items.map(item=>{
+    const tags = [];
+    if(item.anlage==='Anlagev.') tags.push('<span class="tag tag-anlage">Anlagev.</span>');
+    if(item.anlage==='GWG') tags.push('<span class="tag tag-gwg">GWG</span>');
+    if(item.status==='Defekt') tags.push('<span class="tag tag-defekt">Defekt</span>');
+    if(item.status==='Nicht aktuell'||item.status==='Nicht komplett') tags.push('<span class="tag tag-nok">'+item.status+'</span>');
+    if(item.person) tags.push(`<span class="tag tag-loc">${item.person}</span>`);
+    const thumb = item.foto
+      ? `<div class="inv-thumb"><img src="${item.foto}" loading="lazy" onerror="this.parentElement.innerHTML='<i class=ti ti-${getIcon(item.bezeichnung)} style=font-size:22px;color:var(--text3)></i>'"></div>`
+      : `<div class="inv-thumb"><i class="ti ${getIcon(item.bezeichnung)}"></i></div>`;
+    return `<div class="inv-item" onclick="openDetail('${item.id}')">
+      ${thumb}
+      <div class="inv-info">
+        <div class="inv-nr">${item.nr||'ohne Nr.'}</div>
+        <div class="inv-name">${item.bezeichnung||'–'}</div>
+        <div class="inv-meta">${tags.join('')}</div>
+      </div>
+      <i class="ti ti-chevron-right inv-chevron"></i>
+    </div>`;
+  }).join('');
+}
+
+window.openDetail = function(id) {
+  const item = allItems.find(i=>i.id===id);
+  if(!item) return;
+  document.getElementById('detailTitle').textContent = item.bezeichnung||'Details';
+  const rows = [
+    ['Inventar-Nr.', item.nr||'ohne Nummer'],
+    ['Gruppe', item.gruppe],
+    ['Firmierung', item.firmierung],
+    ['Standort', item.standort],
+    ['Status', item.status],
+    ['Ausgegeben an', item.person],
+    ['Gekauft am', item.datum ? new Date(item.datum).toLocaleDateString('de-DE') : ''],
+    ['Anschaffungspreis', item.preis ? `${parseFloat(item.preis).toLocaleString('de-DE',{minimumFractionDigits:2})} €` : ''],
+    ['Anlagevermögen/GWG', item.anlage],
+  ].filter(([,v])=>v);
+
+  const tags = [];
+  if(item.anlage==='Anlagev.') tags.push('<span class="detail-tag tag-anlage">Anlagevermögen</span>');
+  if(item.anlage==='GWG') tags.push('<span class="detail-tag tag-gwg">GWG</span>');
+  if(item.status==='Defekt') tags.push('<span class="detail-tag tag-defekt">Defekt</span>');
+
+  document.getElementById('detailContent').innerHTML = `
+    ${item.foto ? `<img class="detail-img" src="${item.foto}" alt="">` : `<div class="detail-img-placeholder"><i class="ti ${getIcon(item.bezeichnung)}"></i></div>`}
+    <div class="detail-body">
+      <div class="detail-name">${item.bezeichnung||'–'}</div>
+      <div class="detail-nr">${item.nr||'ohne Inventarnummer'}</div>
+      ${tags.length ? `<div class="detail-tags">${tags.join('')}</div>` : ''}
+      ${item.beschreibung ? `<div class="detail-desc">${item.beschreibung}</div>` : ''}
+      <div class="detail-fields">${rows.map(([l,v])=>`<div class="detail-row"><span class="detail-label">${l}</span><span class="detail-val">${v}</span></div>`).join('')}</div>
+      <button class="btn-edit" onclick="editItem('${item.id}')"><i class="ti ti-pencil"></i> Bearbeiten</button>
+      <button class="btn-delete" id="btnDelete" onclick="deleteItem('${item.id}')"><i class="ti ti-trash"></i> Löschen</button>
+    </div>`;
+  if(isAdmin) document.getElementById('btnDelete').style.display='flex';
+  openSheet('detailOverlay','detailSheet');
+};
+
+window.closeDetail = ()=>closeSheet('detailOverlay','detailSheet');
+window.editItem = id=>{ closeDetail(); setTimeout(()=>openForm(id),300); };
+window.deleteItem = id=>{
+  if(!isAdmin){showToast('Admin-Rechte erforderlich');return;}
+  if(!confirm('Diesen Artikel wirklich löschen?'))return;
+  deleteDoc(doc(db,'inventar',id)).then(()=>{showToast('Gelöscht');closeDetail();});
+};
+
+window.openForm = function(editId) {
+  currentEditId = editId||null;
+  document.getElementById('formTitle').textContent = editId ? 'Artikel bearbeiten' : 'Neuer Artikel';
+  ['fNr','fBez','fDesc','fPreis'].forEach(id=>document.getElementById(id).value='');
+  ['fGruppe','fStandort','fFirm','fPerson','fAnlage'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fStatus').value='In Ordnung';
+  document.getElementById('fDatum').value='';
+  if(editId) {
+    const item = allItems.find(i=>i.id===editId);
+    if(item) {
+      document.getElementById('fNr').value=item.nr||'';
+      document.getElementById('fBez').value=item.bezeichnung||'';
+      document.getElementById('fDesc').value=item.beschreibung||'';
+      document.getElementById('fGruppe').value=item.gruppe||'';
+      document.getElementById('fStandort').value=item.standort||'';
+      document.getElementById('fFirm').value=item.firmierung||'';
+      document.getElementById('fStatus').value=item.status||'In Ordnung';
+      document.getElementById('fPerson').value=item.person||'';
+      document.getElementById('fDatum').value=item.datum||'';
+      document.getElementById('fPreis').value=item.preis||'';
+      document.getElementById('fAnlage').value=item.anlage||'';
+    }
+  }
+  openSheet('formOverlay','formSheet');
+};
+
+window.closeForm = ()=>closeSheet('formOverlay','formSheet');
+
+window.saveItem = async function() {
+  const bez = document.getElementById('fBez').value.trim();
+  if(!bez){showToast('Bezeichnung ist Pflicht');return;}
+  const data = {
+    nr: document.getElementById('fNr').value.trim(),
+    bezeichnung: bez,
+    beschreibung: document.getElementById('fDesc').value.trim(),
+    gruppe: document.getElementById('fGruppe').value,
+    standort: document.getElementById('fStandort').value,
+    firmierung: document.getElementById('fFirm').value,
+    status: document.getElementById('fStatus').value,
+    person: document.getElementById('fPerson').value,
+    datum: document.getElementById('fDatum').value,
+    preis: document.getElementById('fPreis').value,
+    anlage: document.getElementById('fAnlage').value,
+    foto: currentEditId?(allItems.find(i=>i.id===currentEditId)||{}).foto||'':'',
+    aktualisiert: new Date().toISOString()
+  };
+  if(currentEditId) {
+    await updateDoc(doc(db,'inventar',currentEditId),data);
+    showToast('Gespeichert ✓');
+  } else {
+    data.erstellt=new Date().toISOString();
+    await addDoc(collection(db,'inventar'),data);
+    showToast('Artikel angelegt ✓');
+  }
+  closeForm();
+};
+
+function openSheet(overlayId, sheetId) {
+  const o=document.getElementById(overlayId), s=document.getElementById(sheetId);
+  o.classList.add('open');
+  setTimeout(()=>{o.classList.add('visible');s.classList.add('open');},10);
+}
+function closeSheet(overlayId, sheetId) {
+  const o=document.getElementById(overlayId), s=document.getElementById(sheetId);
+  o.classList.remove('visible');s.classList.remove('open');
+  setTimeout(()=>o.classList.remove('open'),300);
+}
+
+window.openScanner = ()=>{ pendingScanForForm=false; startScanner(); };
+window.openScannerForForm = ()=>{ pendingScanForForm=true; startScanner(); };
+
+function startScanner() {
+  document.getElementById('scannerOverlay').classList.add('open');
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
+    .then(stream=>{
+      scanStream=stream;
+      const v=document.getElementById('scanner-video');
+      v.srcObject=stream; v.play();
+      startBarcodeDetection(v);
+    }).catch(()=>{ showToast('Kamera nicht verfügbar'); closeScanner(); });
+}
+
+function startBarcodeDetection(video) {
+  if(!('BarcodeDetector' in window)) return;
+  const detector = new BarcodeDetector({formats:['code_128','code_39','ean_13','ean_8','upc_a','upc_e','qr_code','itf']});
+  scanInterval = setInterval(async()=>{
+    try {
+      const barcodes = await detector.detect(video);
+      if(barcodes.length>0) {
+        clearInterval(scanInterval); closeScanner(); handleScannedCode(barcodes[0].rawValue);
+      }
+    } catch(e){}
+  },300);
+}
+
+window.closeScanner = ()=>{
+  clearInterval(scanInterval);
+  if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null;}
+  document.getElementById('scanner-video').srcObject=null;
+  document.getElementById('scannerOverlay').classList.remove('open');
+};
+
+window.manualBarcodeEntry = ()=>{
+  closeScanner();
+  const code=prompt('Inventarnummer eingeben:');
+  if(code) handleScannedCode(code.trim());
+};
+
+function handleScannedCode(code) {
+  if(pendingScanForForm){
+    document.getElementById('fNr').value=code;
+    showToast(`Nr. ${code} eingetragen`);
+    return;
+  }
+  const item=allItems.find(i=>i.nr===code);
+  if(item) openDetail(item.id);
+  else if(confirm(`Nummer "${code}" nicht gefunden.\nNeuen Artikel anlegen?`)){
+    openForm(); setTimeout(()=>document.getElementById('fNr').value=code,300);
+  }
+}
+
+window.onSearch = input=>{
+  searchQ=input.value;
+  document.getElementById('searchClear').style.display=searchQ?'block':'none';
+  applyFilters();
+};
+window.clearSearch = ()=>{
+  document.getElementById('searchInput').value='';
+  searchQ='';
+  document.getElementById('searchClear').style.display='none';
+  applyFilters();
+};
+
+window.openAdmin = ()=>{
+  if(isAdmin){showAdminSheet();return;}
+  adminAction='admin';
+  document.getElementById('pinInput').value='';
+  document.getElementById('pinError').style.display='none';
+  document.getElementById('pinOverlay').classList.add('open');
+};
+window.checkPin = ()=>{
+  if(document.getElementById('pinInput').value===ADMIN_PIN){
+    isAdmin=true;
+    document.getElementById('pinOverlay').classList.remove('open');
+    showToast('Admin-Modus aktiv ✓');
+    if(adminAction==='admin') showAdminSheet();
+  } else document.getElementById('pinError').style.display='block';
+};
+window.closePinOverlay = ()=>document.getElementById('pinOverlay').classList.remove('open');
+
+function showAdminSheet(){
+  renderAdminLists();
+  openSheet('adminOverlay','adminSheet');
+}
+window.closeAdmin = ()=>closeSheet('adminOverlay','adminSheet');
+
+function renderAdminLists(){
+  ['personList','gruppeList','standortList'].forEach(id=>document.getElementById(id).innerHTML='');
+  config.personen.forEach(p=>document.getElementById('personList').innerHTML+=`<div class="admin-item"><span>${p}</span><button onclick="removePerson('${p}')">Löschen</button></div>`);
+  config.gruppen.forEach(g=>document.getElementById('gruppeList').innerHTML+=`<div class="admin-item"><span>${g}</span><button onclick="removeGruppe('${g}')">Löschen</button></div>`);
+  config.standorte.forEach(s=>document.getElementById('standortList').innerHTML+=`<div class="admin-item"><span>${s}</span><button onclick="removeStandort('${s}')">Löschen</button></div>`);
+}
+
+async function saveConfig(){
+  await setDoc(doc(db,'config','main'),config);
+  populateSelects(); renderAdminLists();
+}
+
+window.addPerson=async()=>{const v=document.getElementById('newPerson').value.trim();if(!v)return;if(!config.personen.includes(v)){config.personen.push(v);config.personen.sort();await saveConfig();}document.getElementById('newPerson').value='';};
+window.removePerson=async p=>{config.personen=config.personen.filter(x=>x!==p);await saveConfig();};
+window.addGruppe=async()=>{const v=document.getElementById('newGruppe').value.trim();if(!v)return;if(!config.gruppen.includes(v)){config.gruppen.push(v);config.gruppen.sort();await saveConfig();}document.getElementById('newGruppe').value='';};
+window.removeGruppe=async g=>{config.gruppen=config.gruppen.filter(x=>x!==g);await saveConfig();};
+window.addStandort=async()=>{const v=document.getElementById('newStandort').value.trim();if(!v)return;if(!config.standorte.includes(v)){config.standorte.push(v);config.standorte.sort();await saveConfig();}document.getElementById('newStandort').value='';};
+window.removeStandort=async s=>{config.standorte=config.standorte.filter(x=>x!==s);await saveConfig();};
+
+window.showToast = msg=>{
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+};
+
+loadConfig().then(loadItems);
+</script>
+</body>
+</html>
