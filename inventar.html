@@ -775,13 +775,14 @@ async function startScanner() {
     zxingReader = codeReader;
 
     // decodeFromConstraints manages its own stream – ideal for iOS PWA
+    let zxingDone = false;
     await codeReader.decodeFromConstraints(
       { video: { facingMode: 'environment' } },
       'scanner-video',
       (result, err) => {
-        if (result) {
+        if (result && !zxingDone) {
+          zxingDone = true;
           const code = result.getText();
-          zxingReader = null;
           closeScanner();
           handleScannedCode(code);
         }
@@ -796,7 +797,8 @@ async function startScanner() {
 
 window.closeScanner = ()=>{
   clearInterval(scanInterval);
-  if(zxingReader){try{zxingReader.reset();}catch(e){}zxingReader=null;}
+  const zr = zxingReader; zxingReader = null;
+  if(zr){try{zr.reset();}catch(e){}}
   if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null;}
   document.getElementById('scanner-video').srcObject=null;
   document.getElementById('scannerOverlay').classList.remove('open');
