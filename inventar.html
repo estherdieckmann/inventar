@@ -808,7 +808,12 @@ window.manualBarcodeEntry = ()=>{
   if(code) handleScannedCode(code.trim());
 };
 
+let _scanHandled = false;
 function handleScannedCode(code) {
+  if(_scanHandled) return;
+  _scanHandled = true;
+  setTimeout(()=>_scanHandled=false, 2000);
+
   if(pendingScanForForm){
     document.getElementById('fNr').value=code;
     showToast(`Nr. ${code} eingetragen`);
