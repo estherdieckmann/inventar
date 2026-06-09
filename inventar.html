@@ -436,6 +436,21 @@ body { display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; 
           <option value="GWG">GWG</option>
         </select>
       </div>
+      <div class="form-group" id="fotoGroup">
+        <label class="form-label">Foto</label>
+        <div id="fotoPreviewWrap" style="margin-bottom:8px;display:none;position:relative">
+          <img id="fotoPreview" style="width:100%;border-radius:var(--radius-sm);max-height:200px;object-fit:contain;background:var(--surface2)" alt="">
+          <button type="button" onclick="removeFoto()" style="position:absolute;top:6px;right:6px;background:var(--danger);color:white;border:none;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer"><i class="ti ti-trash"></i></button>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button type="button" onclick="triggerFotoUpload('camera')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;border:1.5px dashed var(--gold);border-radius:var(--radius-sm);background:var(--gold-light);color:var(--gold-dark);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit">
+            <i class="ti ti-camera"></i> Kamera
+          </button>
+          <button type="button" onclick="triggerFotoUpload('gallery')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;border:1.5px dashed var(--border);border-radius:var(--radius-sm);background:var(--surface2);color:var(--text2);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit">
+            <i class="ti ti-photo"></i> Galerie
+          </button>
+        </div>
+      </div>
       <button class="btn-primary" onclick="saveItem()">
         <i class="ti ti-device-floppy"></i> Speichern
       </button>
@@ -772,18 +787,8 @@ window.openDetail = function(id) {
     <button class="btn-delete" style="display:flex" onclick="deleteItem('${item.id}')"><i class="ti ti-trash"></i> Löschen</button>
   ` : '';
 
-  const fotoSection = item.foto
-    ? `<div style="position:relative">
-        <img class="detail-img" src="${item.foto}" alt="" id="detailFotoImg">
-        ${isAdmin ? `<button onclick="triggerFotoUpload('${item.id}','${item.foto}')" style="position:absolute;bottom:10px;right:10px;background:#1a1a1a;color:var(--gold);border:none;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;box-shadow:var(--shadow-lg)"><i class="ti ti-camera"></i></button>` : ''}
-      </div>`
-    : `<div class="detail-img-placeholder" style="position:relative">
-        <i class="ti ${getIcon(item.bezeichnung)}"></i>
-        ${isAdmin ? `<button onclick="triggerFotoUpload('${item.id}',null)" style="position:absolute;bottom:10px;right:10px;background:#1a1a1a;color:var(--gold);border:none;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;box-shadow:var(--shadow-lg)"><i class="ti ti-plus"></i></button>` : ''}
-      </div>`;
-
   document.getElementById('detailContent').innerHTML = `
-    ${fotoSection}
+    ${item.foto ? `<img class="detail-img" src="${item.foto}" alt="">` : `<div class="detail-img-placeholder"><i class="ti ${getIcon(item.bezeichnung)}"></i></div>`}
     <div class="detail-body">
       <div class="detail-name">${item.bezeichnung||'–'}</div>
       <div class="detail-nr">${item.nr||'ohne Inventarnummer'}</div>
@@ -836,11 +841,23 @@ window.openForm = function(id=null) {
     document.getElementById('fDatum').value = item.datum||'';
     document.getElementById('fPreis').value = item.preis||'';
     document.getElementById('fAnlage').value = item.anlage||'';
+    // Foto preview
+    _pendingFotoFile = null; _pendingFotoUrl = null; window._deleteFoto = false;
+    if(item.foto){
+      document.getElementById('fotoPreview').src = item.foto;
+      document.getElementById('fotoPreviewWrap').style.display = 'block';
+    } else {
+      document.getElementById('fotoPreview').src = '';
+      document.getElementById('fotoPreviewWrap').style.display = 'none';
+    }
   } else {
     document.getElementById('formTitle').textContent = 'Neuer Artikel';
     document.getElementById('editId').value = '';
     ['fNr','fBez','fDesc','fDatum','fPreis'].forEach(id=>document.getElementById(id).value='');
     ['fGruppe','fFirm','fStandort','fPerson','fAnlage'].forEach(id=>document.getElementById(id).value='');
+    _pendingFotoFile = null; _pendingFotoUrl = null; window._deleteFoto = false;
+    document.getElementById('fotoPreview').src = '';
+    document.getElementById('fotoPreviewWrap').style.display = 'none';
     document.getElementById('fStatus').value = 'In Ordnung';
   }
   openSheet('formOverlay','formSheet');
@@ -865,6 +882,31 @@ window.saveItem = async function() {
     updatedAt: new Date().toISOString()
   };
   const id = document.getElementById('editId').value;
+
+  // Handle foto upload or deletion
+  if (_pendingFotoFile) {
+    showToast('Foto wird hochgeladen…');
+    try {
+      const compressed = await compressImage(_pendingFotoFile, 1200, 0.82);
+      const path = `inventar/${id||'new'}_${Date.now()}.jpg`;
+      const storageRef = ref(storage, path);
+      await uploadBytes(storageRef, compressed);
+      data.foto = await getDownloadURL(storageRef);
+      // Delete old foto if replacing
+      const oldItem = id ? allItems.find(i=>i.id===id) : null;
+      if(oldItem && oldItem.foto) {
+        try { await deleteObject(ref(storage, oldItem.foto)); } catch(e){}
+      }
+    } catch(err) { showToast('Fehler beim Foto-Upload'); }
+  } else if (window._deleteFoto) {
+    // Delete foto from storage and clear field
+    const oldItem = id ? allItems.find(i=>i.id===id) : null;
+    if(oldItem && oldItem.foto) {
+      try { await deleteObject(ref(storage, oldItem.foto)); } catch(e){}
+    }
+    data.foto = '';
+  }
+
   if(id) {
     await updateDoc(doc(db,'inventar',id), data);
     showToast('Gespeichert ✓');
@@ -873,6 +915,7 @@ window.saveItem = async function() {
     await addDoc(collection(db,'inventar'), data);
     showToast('Artikel angelegt ✓');
   }
+  _pendingFotoFile = null; _pendingFotoUrl = null; window._deleteFoto = false;
   closeForm();
 };
 
@@ -958,40 +1001,34 @@ window.manualBarcodeEntry = ()=>{
 };
 
 // ── Foto Upload ──
-window.triggerFotoUpload = (itemId, existingFoto) => {
+let _pendingFotoFile = null;
+let _pendingFotoUrl = null;  // local preview URL
+
+window.triggerFotoUpload = (source) => {
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = 'image/*';
-  input.capture = 'environment';
+  if (source === 'camera') input.capture = 'environment';
   input.onchange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    showToast('Foto wird hochgeladen…');
-    try {
-      // Compress image before upload
-      const compressed = await compressImage(file, 1200, 0.82);
-      const path = `inventar/${itemId}_${Date.now()}.jpg`;
-      const storageRef = ref(storage, path);
-      await uploadBytes(storageRef, compressed);
-      const url = await getDownloadURL(storageRef);
-      // Delete old foto if exists
-      if (existingFoto) {
-        try {
-          const oldRef = ref(storage, existingFoto);
-          await deleteObject(oldRef);
-        } catch(e) {}
-      }
-      await updateDoc(doc(db,'inventar',itemId), { foto: url });
-      showToast('Foto gespeichert ✓');
-      // Refresh detail view
-      closeDetail();
-      setTimeout(() => openDetail(itemId), 350);
-    } catch(err) {
-      console.error(err);
-      showToast('Fehler beim Hochladen');
-    }
+    _pendingFotoFile = file;
+    // Show preview
+    const url = URL.createObjectURL(file);
+    _pendingFotoUrl = url;
+    document.getElementById('fotoPreview').src = url;
+    document.getElementById('fotoPreviewWrap').style.display = 'block';
   };
   input.click();
+};
+
+window.removeFoto = () => {
+  _pendingFotoFile = null;
+  _pendingFotoUrl = null;
+  document.getElementById('fotoPreview').src = '';
+  document.getElementById('fotoPreviewWrap').style.display = 'none';
+  // Mark for deletion on save
+  window._deleteFoto = true;
 };
 
 function compressImage(file, maxPx, quality) {
