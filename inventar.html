@@ -816,10 +816,20 @@ function handleScannedCode(code) {
   }
   const item=allItems.find(i=>i.nr===code);
   if(item) openDetail(item.id);
-  else if(confirm(`Nummer "${code}" nicht gefunden.\nNeuen Artikel anlegen?`)){
-    openForm(); setTimeout(()=>document.getElementById('fNr').value=code,300);
-  }
+  else showNotFoundDialog(code);
 }
+
+function showNotFoundDialog(code) {
+  document.getElementById('nfdCode').textContent = code;
+  document.getElementById('nfdOverlay').style.display = 'flex';
+  window._nfdCode = code;
+}
+window.nfdCancel = () => { document.getElementById('nfdOverlay').style.display = 'none'; };
+window.nfdConfirm = () => {
+  document.getElementById('nfdOverlay').style.display = 'none';
+  const code = window._nfdCode;
+  openForm(); setTimeout(()=>document.getElementById('fNr').value=code,300);
+};
 
 window.onSearch = input=>{
   searchQ=input.value;
@@ -883,5 +893,18 @@ window.showToast = msg=>{
 
 loadConfig().then(loadItems);
 </script>
+
+<!-- Not Found Dialog -->
+<div id="nfdOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:600;align-items:center;justify-content:center;padding:24px;">
+  <div style="background:var(--surface);border-radius:var(--radius);padding:24px;width:100%;max-width:320px;text-align:center;">
+    <div style="font-size:36px;margin-bottom:8px;">🔍</div>
+    <h3 style="font-size:16px;font-weight:600;margin-bottom:6px;">Nicht gefunden</h3>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:4px;">Nummer</p>
+    <p id="nfdCode" style="font-family:'DM Mono',monospace;font-size:15px;font-weight:600;color:var(--gold);margin-bottom:16px;"></p>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:20px;">Neuen Artikel mit dieser Nummer anlegen?</p>
+    <button onclick="nfdConfirm()" style="width:100%;padding:12px;background:#1a1a1a;color:white;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;margin-bottom:8px;">Anlegen</button>
+    <button onclick="nfdCancel()" style="width:100%;padding:10px;background:none;color:var(--text3);border:none;font-size:13px;font-family:inherit;cursor:pointer;">Abbrechen</button>
+  </div>
+</div>
 </body>
 </html>
