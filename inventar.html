@@ -237,27 +237,25 @@ body { display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; 
 </head>
 <body>
 
-<!-- Welcome Screen -->
+<!-- Login Screen -->
 <div class="welcome-screen" id="welcomeScreen">
   <div class="welcome-logo">
     <h1>DIECKMANN <span>INVENTAR</span></h1>
     <p>BESTANDSVERWALTUNG</p>
   </div>
   <div class="welcome-divider"></div>
-  <button class="welcome-btn welcome-btn-staff" onclick="enterAsStaff()">
-    <div class="welcome-btn-icon"><i class="ti ti-users"></i></div>
-    <div class="welcome-btn-text">
-      <strong>Mitarbeiter</strong>
-      <span>Artikel suchen & scannen</span>
+  <div style="width:100%;max-width:320px">
+    <div style="margin-bottom:12px">
+      <input type="email" id="loginEmail" placeholder="E-Mail" autocomplete="email"
+        style="width:100%;padding:13px 14px;border:1.5px solid rgba(255,255,255,0.15);border-radius:var(--radius-sm);background:rgba(255,255,255,0.08);color:white;font-size:15px;font-family:inherit;outline:none;margin-bottom:8px">
+      <input type="password" id="loginPassword" placeholder="Passwort" autocomplete="current-password"
+        style="width:100%;padding:13px 14px;border:1.5px solid rgba(255,255,255,0.15);border-radius:var(--radius-sm);background:rgba(255,255,255,0.08);color:white;font-size:15px;font-family:inherit;outline:none">
     </div>
-  </button>
-  <button class="welcome-btn welcome-btn-admin" onclick="enterAsAdmin()">
-    <div class="welcome-btn-icon"><i class="ti ti-settings"></i></div>
-    <div class="welcome-btn-text">
-      <strong>Admin</strong>
-      <span>Vollzugriff & Verwaltung</span>
-    </div>
-  </button>
+    <p id="loginError" style="color:#e57373;font-size:12px;margin-bottom:10px;display:none">E-Mail oder Passwort falsch</p>
+    <button onclick="doLogin()" style="width:100%;padding:14px;background:var(--gold);color:#1a1a1a;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:10px">
+      Anmelden
+    </button>
+  </div>
 </div>
 
 <!-- App Header -->
@@ -544,6 +542,7 @@ body { display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBsNb7Ca80tlk075mBoHffH3jlc_M1o6kQ",
@@ -557,6 +556,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
+const auth = getAuth(app);
 
 let ADMIN_PIN = "1234";
 let allItems = [];
@@ -577,6 +577,34 @@ const DEFAULT_GRUPPEN = ['IT','Marketing Produkte','Technik','Ausstattung','Makl
 const DEFAULT_STANDORTE = ['Rathausstraße Schwerte','Menden','Duisburg','Unbekannt'];
 const DEFAULT_PERSONEN = ['Arzu','Berna','Esther','Henna','Inge','Laura','Lea','Malte','Niko','Niels','Rita','Sam','Sami','Shejla'];
 
+// ── Auth ──
+window.doLogin = async () => {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  document.getElementById('loginError').style.display = 'none';
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    // onAuthStateChanged will handle the rest
+  } catch(e) {
+    document.getElementById('loginError').style.display = 'block';
+  }
+};
+
+// Handle Enter key on password field
+document.getElementById('loginPassword').addEventListener('keydown', e => {
+  if(e.key === 'Enter') doLogin();
+});
+
+onAuthStateChanged(auth, user => {
+  if(user) {
+    // Logged in - show mode selection
+    showModeSelection();
+  } else {
+    // Not logged in - show login screen
+    document.getElementById('welcomeScreen').style.display = 'flex';
+  }
+});
+
 // ── Mode selection ──
 window.enterAsStaff = () => {
   isAdmin = false;
@@ -589,6 +617,26 @@ window.enterAsAdmin = () => {
   adminAction = 'welcome';
   document.getElementById('pinOverlay').classList.add('open');
 };
+
+function showModeSelection() {
+  // After login, show staff/admin choice
+  document.getElementById('welcomeScreen').innerHTML = `
+    <div class="welcome-logo">
+      <h1>DIECKMANN <span>INVENTAR</span></h1>
+      <p>BESTANDSVERWALTUNG</p>
+    </div>
+    <div class="welcome-divider"></div>
+    <button class="welcome-btn welcome-btn-staff" onclick="enterAsStaff()">
+      <div class="welcome-btn-icon"><i class="ti ti-users"></i></div>
+      <div class="welcome-btn-text"><strong>Mitarbeiter</strong><span>Artikel suchen & scannen</span></div>
+    </button>
+    <button class="welcome-btn welcome-btn-admin" onclick="enterAsAdmin()">
+      <div class="welcome-btn-icon"><i class="ti ti-settings"></i></div>
+      <div class="welcome-btn-text"><strong>Admin</strong><span>Vollzugriff & Verwaltung</span></div>
+    </button>
+  `;
+  document.getElementById('welcomeScreen').style.display = 'flex';
+}
 
 function applyMode() {
   document.getElementById('welcomeScreen').style.display = 'none';
@@ -608,9 +656,12 @@ function applyMode() {
   }
 }
 
-window.switchMode = () => {
-  document.getElementById('welcomeScreen').style.display = 'flex';
+window.switchMode = async () => {
+  await signOut(auth);
   isAdmin = false;
+  document.getElementById('welcomeScreen').style.display = 'flex';
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginPassword').value = '';
 };
 
 // ── Print ──
