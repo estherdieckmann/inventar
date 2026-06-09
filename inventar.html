@@ -528,6 +528,7 @@ body { display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBsNb7Ca80tlk075mBoHffH3jlc_M1o6kQ",
@@ -540,6 +541,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 let ADMIN_PIN = "1234";
 let allItems = [];
@@ -770,8 +772,18 @@ window.openDetail = function(id) {
     <button class="btn-delete" style="display:flex" onclick="deleteItem('${item.id}')"><i class="ti ti-trash"></i> Löschen</button>
   ` : '';
 
+  const fotoSection = item.foto
+    ? `<div style="position:relative">
+        <img class="detail-img" src="${item.foto}" alt="" id="detailFotoImg">
+        ${isAdmin ? `<button onclick="triggerFotoUpload('${item.id}','${item.foto}')" style="position:absolute;bottom:10px;right:10px;background:#1a1a1a;color:var(--gold);border:none;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;box-shadow:var(--shadow-lg)"><i class="ti ti-camera"></i></button>` : ''}
+      </div>`
+    : `<div class="detail-img-placeholder" style="position:relative">
+        <i class="ti ${getIcon(item.bezeichnung)}"></i>
+        ${isAdmin ? `<button onclick="triggerFotoUpload('${item.id}',null)" style="position:absolute;bottom:10px;right:10px;background:#1a1a1a;color:var(--gold);border:none;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;box-shadow:var(--shadow-lg)"><i class="ti ti-plus"></i></button>` : ''}
+      </div>`;
+
   document.getElementById('detailContent').innerHTML = `
-    ${item.foto ? `<img class="detail-img" src="${item.foto}" alt="">` : `<div class="detail-img-placeholder"><i class="ti ${getIcon(item.bezeichnung)}"></i></div>`}
+    ${fotoSection}
     <div class="detail-body">
       <div class="detail-name">${item.bezeichnung||'–'}</div>
       <div class="detail-nr">${item.nr||'ohne Inventarnummer'}</div>
@@ -944,6 +956,61 @@ window.manualBarcodeEntry = ()=>{
   const code=prompt('Inventarnummer eingeben:');
   if(code) handleScannedCode(code.trim());
 };
+
+// ── Foto Upload ──
+window.triggerFotoUpload = (itemId, existingFoto) => {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.capture = 'environment';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    showToast('Foto wird hochgeladen…');
+    try {
+      // Compress image before upload
+      const compressed = await compressImage(file, 1200, 0.82);
+      const path = `inventar/${itemId}_${Date.now()}.jpg`;
+      const storageRef = ref(storage, path);
+      await uploadBytes(storageRef, compressed);
+      const url = await getDownloadURL(storageRef);
+      // Delete old foto if exists
+      if (existingFoto) {
+        try {
+          const oldRef = ref(storage, existingFoto);
+          await deleteObject(oldRef);
+        } catch(e) {}
+      }
+      await updateDoc(doc(db,'inventar',itemId), { foto: url });
+      showToast('Foto gespeichert ✓');
+      // Refresh detail view
+      closeDetail();
+      setTimeout(() => openDetail(itemId), 350);
+    } catch(err) {
+      console.error(err);
+      showToast('Fehler beim Hochladen');
+    }
+  };
+  input.click();
+};
+
+function compressImage(file, maxPx, quality) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w > maxPx || h > maxPx) {
+        if (w > h) { h = Math.round(h * maxPx / w); w = maxPx; }
+        else { w = Math.round(w * maxPx / h); h = maxPx; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(resolve, 'image/jpeg', quality);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
 
 let _scanHandled = false;
 function handleScannedCode(code) {
